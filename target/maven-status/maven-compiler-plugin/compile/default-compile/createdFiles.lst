@@ -1,0 +1,10 @@
+com\demo\mcp\kb\KnowledgeBase.class
+com\demo\mcp\kb\KbSearchService.class
+com\demo\mcp\KbMcpServerApplication.class
+com\demo\mcp\web\GlobalExceptionHandler.class
+com\demo\mcp\kb\KnowledgeBase$KbDoc.class
+com\demo\mcp\kb\KbSearchService$Passage.class
+com\demo\mcp\mcp\McpToolRegistry.class
+com\demo\mcp\kb\KbSearchService$1Scored.class
+com\demo\mcp\mcp\McpSessionManager.class
+com\demo\mcp\mcp\McpSseController.class
