@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
 
@@ -19,6 +20,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> badRequest(IllegalArgumentException e) {
         log.warn("请求参数错误: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+    }
+
+    /**
+     * 静态资源不存在（典型场景：浏览器自动请求 /favicon.ico 标签页图标）。
+     * 正常的 404，静默返回，不打 ERROR 堆栈污染日志。
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, String>> staticResourceNotFound(NoResourceFoundException e) {
+        log.debug("静态资源不存在: {}", e.getResourcePath());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "资源不存在: " + e.getResourcePath()));
     }
 
     @ExceptionHandler(Exception.class)
