@@ -1,5 +1,9 @@
 # ==============================================================================
 # 知识库 MCP Server 配置
+#
+# 与旧版最大的区别：不再有 mcp.sse-path / mcp.message-path 这类"自己解析协议"的配置，
+# 全部改为 Spring AI MCP Server Starter 的标准配置项（前缀 spring.ai.mcp.server）。
+# 完整可配项见 McpServerProperties / McpServerStreamableHttpProperties。
 # ==============================================================================
 server:
   port: 8082
@@ -7,20 +11,34 @@ server:
 spring:
   application:
     name: kb-mcp-server
-
-mcp:
-  server:
-    # 对外广播的服务名与版本（MCP initialize 握手时返回给客户端）
-    name: kb-mcp-server
-    version: 1.0.0
-    # 协议版本：选择与主流客户端兼容的日期版本
-    # [待核实: 各客户端支持的最高协议版本，可用 tools/list 实测]
-    protocol-version: "2024-11-05"
-  # SSE 端点路径（客户端先 GET 这个地址建立事件流）
-  sse-path: /sse
-  # 消息回传端点（客户端向这个地址 POST JSON-RPC 请求）
-  message-path: /mcp/message
+  ai:
+    mcp:
+      server:
+        # 握手时返回给客户端的服务标识
+        name: kb-mcp-server
+        version: 1.0.0
+        # SYNC：同步 API（工具方法同步返回）；ASYNC 走 Reactor，本项目不需要
+        type: SYNC
+        # 传输协议：STREAMABLE = Streamable HTTP（MCP 当前主流传输）
+        # 其他可选值：SSE（旧版，仅兼容用）、STATELESS（无会话，纯无状态调用）
+        protocol: STREAMABLE
+        # 客户端 initialize 时展示给 LLM 的服务说明（相当于整个 Server 的"系统提示词"）
+        instructions: |
+          企业知识库检索服务。回答公司制度、IT 支持、报销、账号、办公设备类问题前，
+          先调用 search_knowledge_base 检索依据；片段不够细时再用 get_document 取全文。
+        # 单次工具调用的请求超时
+        request-timeout: 30s
+        streamable-http:
+          # Streamable HTTP 端点：客户端 POST 到这里（同时支持 GET 建 SSE 流、DELETE 关会话）
+          mcp-endpoint: /mcp
+          # keep-alive-interval 保持默认（不配置 = 禁用）。
+          # 注意：服务端主动 keep-alive 只对"维持着 SSE GET 长流"的客户端有意义；
+          # LangChain4j 等 Streamable HTTP 客户端不开长流，配了反而每 30 秒刷一条
+          # "KeepAliveScheduler : Failed to send keep-alive ... Stream unavailable" WARN。
+          # 会话活性由客户端的 MCP ping（autoHealthCheck）与每次请求天然保证。
 
 logging:
   level:
     com.demo.mcp: INFO
+    # 想看协议报文就把下面这行调成 DEBUG（框架会打印 initialize/tools/list/tools/call 的原始 JSON）
+    io.modelcontextprotocol: INFO
